@@ -19,9 +19,7 @@ class RequestSpan:
 
 
 class Qwen3SelectiveModel(nn.Module):
-    """
-    Qwen3 forward path that owns execution block-by-block.
-    """
+    """Qwen3 forward path that owns execution block-by-block."""
 
     def __init__(self, model: Qwen3ForCausalLM):
         super().__init__()
@@ -36,25 +34,17 @@ class Qwen3SelectiveModel(nn.Module):
         cache_position: list[torch.Tensor],
         request_caches: dict[str, DynamicCache],
     ) -> torch.Tensor:
+        split_hidden_states = self.split_hidden_states(hidden_states, spans)
         position_embeddings: list[tuple[torch.Tensor, torch.Tensor]] = []
         attention_masks: list[torch.Tensor | None] = []
 
-        for span, req_position_ids, req_cache_position in zip(
-            spans,
-            position_ids,
-            cache_position,
-            strict=True,
+        for req_hidden, span, req_position_ids, req_cache_position in zip(
+            split_hidden_states, spans, position_ids, cache_position, strict=True
         ):
             req_id = span.request_id
-            req_hidden = hidden_states[span.start : span.end].unsqueeze(0)
             # apply RoPE
             req_position_ids = req_position_ids.unsqueeze(0)
-            position_embeddings.append(
-                self.model.model.rotary_emb(
-                    req_hidden,
-                    req_position_ids,
-                )
-            )
+            position_embeddings.append(self.model.model.rotary_emb(req_hidden, req_position_ids))
             attention_masks.append(
                 create_causal_mask(
                     config=self.model.config,
@@ -72,11 +62,15 @@ class Qwen3SelectiveModel(nn.Module):
             # RMSNorm 1
             hidden_states = layer.input_layernorm(hidden_states)
 
+            # Split
+            split_hidden_states = self.split_hidden_states(hidden_states, spans)
+            request_outputs: list[torch.Tensor] = []
+
             # GQA (Grouped-Query Attention)
-            # Selective batching keeps flat token-wise ops batched, but runs
-            # attention request by request so each request can use its own KV.
-            attn_output = torch.empty_like(hidden_states)
-            for span, req_position_embeddings, req_cache_position, attention_mask in zip(
+            # Split the flat tensor back into per-request slices so each
+            # request can attend with its own KV cache state.
+            for req_hidden, span, req_position_embeddings, req_cache_position, attention_mask in zip(
+                split_hidden_states,
                 spans,
                 position_embeddings,
                 cache_position,
@@ -84,7 +78,6 @@ class Qwen3SelectiveModel(nn.Module):
                 strict=True,
             ):
                 req_id = span.request_id
-                req_hidden = hidden_states[span.start : span.end].unsqueeze(0)
                 attn_out, _attn_weights = layer.self_attn(
                     hidden_states=req_hidden,
                     position_embeddings=req_position_embeddings,
@@ -92,7 +85,10 @@ class Qwen3SelectiveModel(nn.Module):
                     attention_mask=attention_mask,
                     past_key_values=request_caches[req_id],
                 )
-                attn_output[span.start : span.end] = attn_out.squeeze(0)
+                request_outputs.append(attn_out)
+
+            # Merge per-request attention outputs back into the flat tensor.
+            attn_output = self.merge_request_outputs(hidden_states, spans, request_outputs)
 
             # residual connection
             hidden_states = residual + attn_output
@@ -105,3 +101,18 @@ class Qwen3SelectiveModel(nn.Module):
             hidden_states = residual + hidden_states
         # final RMSNorm
         return self.model.model.norm(hidden_states)
+
+    # Split
+    @staticmethod
+    def split_hidden_states(hidden_states: torch.Tensor, spans: list[RequestSpan]) -> list[torch.Tensor]:
+        return [hidden_states[span.start : span.end].unsqueeze(0) for span in spans]
+
+    # Merge
+    @staticmethod
+    def merge_request_outputs(
+        hidden_states: torch.Tensor, spans: list[RequestSpan], request_outputs: list[torch.Tensor]
+    ) -> torch.Tensor:
+        merged_output = torch.empty_like(hidden_states)
+        for span, request_output in zip(spans, request_outputs, strict=True):
+            merged_output[span.start : span.end] = request_output.squeeze(0)
+        return merged_output

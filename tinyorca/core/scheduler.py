@@ -53,10 +53,6 @@ class OrcaScheduler:
             raise ValueError("n_slots must be >= 1")
         self.n_rsrv = 0
 
-    @staticmethod
-    def request_slots(request: Request) -> int:
-        return len(request.prompt_ids) + request.sampling.max_new_tokens
-
     def select(self) -> list[Request]:
         """
         Implementation of `Select(pool, n_rsrv)` in Algorithm 1.
@@ -66,15 +62,14 @@ class OrcaScheduler:
             if len(batch) == self.max_batch_size:
                 break
             if request.state is RequestState.WAITING:
-                request_slots = self.request_slots(request)
-                if request_slots > self.n_slots:
+                if request.max_tokens > self.n_slots:
                     raise ValueError(
                         "request exceeds total n_slots capacity "
                         f"(request_id={request.request_id}, "
-                        f"required_slots={request_slots}, n_slots={self.n_slots})"
+                        f"required_slots={request.max_tokens}, n_slots={self.n_slots})"
                     )
                 # reserve KV only once, when a request is first admitted.
-                new_n_rsrv = self.n_rsrv + request_slots
+                new_n_rsrv = self.n_rsrv + request.max_tokens
                 if new_n_rsrv > self.n_slots:
                     break
                 self.n_rsrv = new_n_rsrv
@@ -95,7 +90,7 @@ class OrcaScheduler:
                 request = token_event.request
                 if request.state is RequestState.FINISHED:
                     self.request_pool.remove(request)
-                    self.n_rsrv -= self.request_slots(request)
+                    self.n_rsrv -= request.max_tokens
                 else:
                     request.increment()
                 yield token_event

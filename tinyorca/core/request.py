@@ -54,6 +54,10 @@ class Request:
         if not self.prompt_ids:
             raise ValueError("prompt_ids must not be empty")
 
+    @property
+    def max_tokens(self) -> int:
+        return len(self.prompt_ids) + self.sampling.max_new_tokens
+
     def mark_submitted(self, now: float | None = None) -> None:
         if self.metrics.submitted_at is None:
             self.metrics.submitted_at = time.perf_counter() if now is None else now
