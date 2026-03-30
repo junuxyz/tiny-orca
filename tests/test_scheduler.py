@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tinyorca.core.request import Request, SamplingConfig
+from tinyorca.core.request import Request, RequestState, SamplingConfig
 from tinyorca.core.scheduler import OrcaScheduler, RequestPool
 
 
@@ -21,6 +21,7 @@ def test_select_preserves_iteration_level_fcfs(engine_factory) -> None:
     earlier_request = _build_request("r1", (10, 11, 12), max_new_tokens=2)
     later_request = _build_request("r2", (20, 21), max_new_tokens=2)
 
+    earlier_request.initiate()
     engine.run_iter([earlier_request])
     earlier_request.increment()
 
@@ -33,6 +34,22 @@ def test_select_preserves_iteration_level_fcfs(engine_factory) -> None:
     selected = scheduler.select()
 
     assert [request.request_id for request in selected] == ["r1", "r2"]
+    assert later_request.state is RequestState.INITIATION
+
+
+def test_select_admits_waiting_request_and_reserves_slots(engine_factory) -> None:
+    engine = engine_factory(n_slots=8)
+    request = _build_request("r0", (1, 2), max_new_tokens=3)
+    request_pool = RequestPool()
+    request_pool.push(request)
+
+    scheduler = OrcaScheduler(engine, request_pool, max_batch_size=1)
+
+    selected = scheduler.select()
+
+    assert selected == [request]
+    assert request.state is RequestState.INITIATION
+    assert scheduler.n_rsrv == 5
 
 
 def test_schedule_admits_later_request_after_slots_free_up(engine_factory) -> None:

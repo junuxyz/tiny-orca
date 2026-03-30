@@ -5,7 +5,7 @@ import time
 
 from rich.live import Live
 
-from tinyorca import OrcaConfig, OrcaServe
+from tinyorca import OrcaConfig, OrcaServe, SamplingConfig
 
 THINKING_FRAMES = ("Thinking", "Thinking .", "Thinking ..", "Thinking ...")
 THINKING_STEP_SECONDS = 0.3
@@ -84,7 +84,7 @@ def main() -> None:
         OrcaConfig(
             model="Qwen/Qwen3-0.6B",
             max_batch_size=2,
-            max_new_tokens=512,
+            sampling=SamplingConfig(max_new_tokens=512),
         )
     )
 

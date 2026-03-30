@@ -65,7 +65,7 @@ class OrcaScheduler:
         for request in self.request_pool.arrival_ordered_requests():
             if len(batch) == self.max_batch_size:
                 break
-            if request.state is RequestState.INITIATION:
+            if request.state is RequestState.WAITING:
                 request_slots = self.request_slots(request)
                 if request_slots > self.n_slots:
                     raise ValueError(
@@ -78,6 +78,7 @@ class OrcaScheduler:
                 if new_n_rsrv > self.n_slots:
                     break
                 self.n_rsrv = new_n_rsrv
+                request.initiate()
             batch.append(request)
         return batch
 

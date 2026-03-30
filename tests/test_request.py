@@ -22,6 +22,20 @@ def test_record_token_tracks_first_token_and_finishes_at_max_new_tokens() -> Non
     assert request.metrics.finished_at == 3.0
 
 
+def test_request_starts_waiting_and_can_initiate() -> None:
+    request = Request(
+        request_id="r0",
+        prompt_ids=(1,),
+        sampling=SamplingConfig(max_new_tokens=2, eos_token_id=None),
+    )
+
+    assert request.state is RequestState.WAITING
+
+    request.initiate()
+
+    assert request.state is RequestState.INITIATION
+
+
 def test_record_token_finishes_early_on_eos() -> None:
     request = Request(
         request_id="r2",

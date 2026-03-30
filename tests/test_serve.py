@@ -20,6 +20,7 @@ def test_endpoint_submit_enqueues_request(tokenizer) -> None:
     assert request.prompt_ids == tuple(
         tokenizer.encode("ab", add_special_tokens=False, verbose=False)
     )
+    assert request.state is RequestState.WAITING
     assert request.metrics.submitted_at is not None
     assert request_pool.arrival_ordered_requests() == [request]
 

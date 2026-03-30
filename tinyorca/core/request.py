@@ -6,8 +6,9 @@ from enum import StrEnum
 
 
 class RequestState(StrEnum):
-    """request lifecycle: INITIATION -> INCREMENT -> FINISHED."""
+    """request lifecycle: WAITING -> INITIATION -> INCREMENT -> FINISHED."""
 
+    WAITING = "waiting"
     INITIATION = "initiation"
     INCREMENT = "increment"
     FINISHED = "finished"
@@ -43,7 +44,7 @@ class Request:
     prompt_ids: tuple[int, ...]
     sampling: SamplingConfig
     output_ids: list[int] = field(default_factory=list)
-    state: RequestState = RequestState.INITIATION
+    state: RequestState = RequestState.WAITING
     finish_reason: FinishReason | None = None
     metrics: RequestMetrics = field(default_factory=RequestMetrics)
 
@@ -57,7 +58,14 @@ class Request:
         if self.metrics.submitted_at is None:
             self.metrics.submitted_at = time.perf_counter() if now is None else now
 
+    def initiate(self) -> None:
+        if self.state is not RequestState.WAITING:
+            raise RuntimeError(f"Cannot initiate request in state={self.state}")
+        self.state = RequestState.INITIATION
+
     def increment(self) -> None:
+        if self.state is RequestState.WAITING:
+            raise RuntimeError(f"Cannot increment request in state={self.state}")
         if self.state is RequestState.FINISHED:
             raise RuntimeError(f"Cannot increment request in state={self.state}")
         self.state = RequestState.INCREMENT
