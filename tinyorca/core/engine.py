@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import time
 from dataclasses import dataclass, field
 
@@ -116,9 +115,9 @@ class OrcaEngine:
         max_batch_size: int,
         max_new_tokens: int,
     ) -> int:
-        """Estimate a one-time hard slot ceiling from current CUDA memory."""
+        """Estimate a one-time slot ceiling from the active device."""
         if self.device.type != "cuda" or not torch.cuda.is_available():
-            raise ValueError("estimate_n_slots requires CUDA")
+            raise ValueError("automatic n_slots estimation requires CUDA")
 
         activation_peak_bytes = self.estimate_activation_peak_bytes(
             max_batch_size=max_batch_size,

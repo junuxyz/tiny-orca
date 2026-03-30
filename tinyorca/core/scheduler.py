@@ -40,11 +40,11 @@ class OrcaScheduler:
         engine: OrcaEngine,
         request_pool: RequestPool,
         max_batch_size: int,
+        n_slots: int | None = None,
     ):
         self.engine = engine
         self.request_pool = request_pool
         self.max_batch_size = max_batch_size
-        n_slots = engine.config.n_slots
         if n_slots is None:
             max_new_tokens = engine.config.sampling.max_new_tokens
             n_slots = engine.estimate_n_slots(max_batch_size, max_new_tokens)

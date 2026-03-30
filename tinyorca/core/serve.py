@@ -52,6 +52,7 @@ class OrcaServe:
         config: OrcaConfig,
         device: str | torch.device | None = None,
         dtype: torch.dtype | None = None,
+        scheduler_n_slots: int | None = None,
     ):
         if not config.model:
             raise ValueError("config.model must be set")
@@ -70,7 +71,10 @@ class OrcaServe:
         self.endpoint = Endpoint(self.tokenizer, self.request_pool)
         self.engine = OrcaEngine(config=config, device=device, dtype=dtype)
         self.scheduler = OrcaScheduler(
-            self.engine, self.request_pool, config.max_batch_size
+            self.engine,
+            self.request_pool,
+            config.max_batch_size,
+            n_slots=scheduler_n_slots,
         )
 
     def generate(

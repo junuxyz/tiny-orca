@@ -17,7 +17,7 @@ def _build_request(
 
 
 def test_select_preserves_iteration_level_fcfs(engine_factory) -> None:
-    engine = engine_factory(n_slots=32)
+    engine = engine_factory()
     earlier_request = _build_request("r1", (10, 11, 12), max_new_tokens=2)
     later_request = _build_request("r2", (20, 21), max_new_tokens=2)
 
@@ -29,7 +29,7 @@ def test_select_preserves_iteration_level_fcfs(engine_factory) -> None:
     request_pool.push(earlier_request)
     request_pool.push(later_request)
 
-    scheduler = OrcaScheduler(engine, request_pool, max_batch_size=2)
+    scheduler = OrcaScheduler(engine, request_pool, max_batch_size=2, n_slots=32)
 
     selected = scheduler.select()
 
@@ -38,12 +38,12 @@ def test_select_preserves_iteration_level_fcfs(engine_factory) -> None:
 
 
 def test_select_admits_waiting_request_and_reserves_slots(engine_factory) -> None:
-    engine = engine_factory(n_slots=8)
+    engine = engine_factory()
     request = _build_request("r0", (1, 2), max_new_tokens=3)
     request_pool = RequestPool()
     request_pool.push(request)
 
-    scheduler = OrcaScheduler(engine, request_pool, max_batch_size=1)
+    scheduler = OrcaScheduler(engine, request_pool, max_batch_size=1, n_slots=8)
 
     selected = scheduler.select()
 
@@ -53,7 +53,7 @@ def test_select_admits_waiting_request_and_reserves_slots(engine_factory) -> Non
 
 
 def test_schedule_admits_later_request_after_slots_free_up(engine_factory) -> None:
-    engine = engine_factory(n_slots=7)
+    engine = engine_factory()
     request_pool = RequestPool()
 
     for request in (
@@ -63,7 +63,7 @@ def test_schedule_admits_later_request_after_slots_free_up(engine_factory) -> No
     ):
         request_pool.push(request)
 
-    scheduler = OrcaScheduler(engine, request_pool, max_batch_size=2)
+    scheduler = OrcaScheduler(engine, request_pool, max_batch_size=2, n_slots=7)
 
     token_events = list(scheduler.schedule())
     request_ids = [event.request.request_id for event in token_events]

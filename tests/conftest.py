@@ -76,10 +76,14 @@ def serve_factory(tiny_model_dir):
         config_overrides.setdefault("sampling", SamplingConfig())
         config = OrcaConfig(
             model=str(tiny_model_dir),
-            n_slots=estimated_n_slots,
             **config_overrides,
         )
-        return OrcaServe(config, device=device, dtype=dtype)
+        return OrcaServe(
+            config,
+            device=device,
+            dtype=dtype,
+            scheduler_n_slots=estimated_n_slots,
+        )
 
     return factory
 
