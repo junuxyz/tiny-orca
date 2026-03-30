@@ -1,32 +1,49 @@
 # tinyORCA
 
 <p align="center">
-  <img src="assets/tinyorca-logo.png" alt="tinyORCA logo" width="320">
+  <img src="assets/tinyorca-logo.png" alt="tinyORCA logo" width="280">
 </p>
 
-`tinyORCA` is a small, readable reimplementation of the main ORCA scheduling idea.
+`tinyORCA` is a minimal implementation of an [ORCA](https://www.usenix.org/system/files/osdi22-yu.pdf)-style LLM serving engine.
 
-It is built for understanding, not production.
+It focuses on iteration-level scheduling and selective batching for mixed prefill and decode workloads.
 
-- iteration-level scheduling
-- iteration-level FCFS
-- selective batching
-- hard `n_slots` admission control
+## Demo: Static Batch vs. Iteration-Level Turnover
+
+Both demos below use the same setup:
+
+- `max_batch_size=2`
+- 5 concurrent requests
+- 2 requests(req-0, req-2) intentionally much shorter than the others
+
+### Baseline Engine
+
+<p align="center">
+  <img src="assets/baseline_engine.gif" alt="baseline engine demo" width="780">
+</p>
+
+In the baseline, the first admitted batch is effectively pinned until its slowest request completes.
+Even if one request finishes early, that vacant spot is not turned into useful work right away, so later requests keep waiting.
+
+### tinyORCA
 
 <p align="center">
   <img src="assets/tinyorca_demo.gif" alt="tinyORCA demo" width="780">
 </p>
 
-As you can see in the demo, it continuously batches. This is available because of selective batching. Selective batching enables to schedule mixture of prefill and decode requests.
+## Deep dive
+For a deeper walkthrough of the paper and this implementation, see: **[Understanding ORCA with tinyORCA](https://github.com/junuxyz/mlsys-notes/blob/main/notes/tinyorca.md)**
 
-## Install
+
+## Run
 
 ```bash
 uv venv
 uv sync
+uv run python -m tinyorca.example
 ```
 
-## Minimal Example
+## Example
 
 ```python
 from tinyorca import OrcaConfig, OrcaServe, SamplingConfig
@@ -43,16 +60,8 @@ for event in serve.generate(["Hello", "Hi."]):
     print(event.request.request_id, event.token_id)
 ```
 
-See [example.py](/tinyorca/example.py) for a slightly fuller runnable example.
+## Benchmark
 
-## Scope
-
-`tinyORCA` currently stays narrow on purpose:
-
-- single-process
-- Qwen3-based selective attention path
-- educational implementation over optimized kernels
-
-## More Detail
-
-Architecture notes, scheduling explanation, and benchmark notes live in [note.md](/note.md).
+```bash
+uv run python -m bench
+```
