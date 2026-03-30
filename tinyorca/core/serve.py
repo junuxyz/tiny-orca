@@ -64,7 +64,7 @@ class OrcaServe:
             self.tokenizer.pad_token_id = eos_token_id
         self.request_pool = RequestPool()
         self.sampling = SamplingConfig(
-            max_new_tokens=config.max_new_tokens,
+            max_new_tokens=config.sampling.max_new_tokens,
             eos_token_id=eos_token_id,
         )
         self.endpoint = Endpoint(self.tokenizer, self.request_pool)

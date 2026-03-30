@@ -25,7 +25,11 @@ def test_endpoint_submit_enqueues_request(tokenizer) -> None:
 
 
 def test_generate_streams_interleaved_tokens(serve_factory) -> None:
-    serve = serve_factory(estimated_n_slots=32, max_batch_size=2, max_new_tokens=2)
+    serve = serve_factory(
+        estimated_n_slots=32,
+        max_batch_size=2,
+        sampling=SamplingConfig(max_new_tokens=2, eos_token_id=None),
+    )
 
     token_events = list(
         serve.generate(
@@ -80,7 +84,7 @@ def test_generate_rejects_request_exceeding_total_slot_capacity(
 ) -> None:
     serve = serve_factory(
         estimated_n_slots=4,
-        max_new_tokens=2,
+        sampling=SamplingConfig(max_new_tokens=2, eos_token_id=None),
     )
 
     with pytest.raises(ValueError, match="request exceeds total n_slots capacity"):
@@ -90,3 +94,13 @@ def test_generate_rejects_request_exceeding_total_slot_capacity(
                 sampling=SamplingConfig(max_new_tokens=2, eos_token_id=None),
             )
         )
+
+
+def test_serve_uses_config_sampling_as_default(serve_factory) -> None:
+    serve = serve_factory(
+        sampling=SamplingConfig(max_new_tokens=3, eos_token_id=None),
+    )
+
+    assert serve.config.sampling == SamplingConfig(max_new_tokens=3, eos_token_id=None)
+    assert serve.sampling.max_new_tokens == 3
+    assert serve.sampling.eos_token_id == serve.tokenizer.eos_token_id

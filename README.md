@@ -29,13 +29,13 @@ uv sync
 ## Minimal Example
 
 ```python
-from tinyorca import OrcaConfig, OrcaServe
+from tinyorca import OrcaConfig, OrcaServe, SamplingConfig
 
 serve = OrcaServe(
     OrcaConfig(
         model="Qwen/Qwen3-0.6B",
         max_batch_size=2,
-        max_new_tokens=32,
+        sampling=SamplingConfig(max_new_tokens=32),
     )
 )
 

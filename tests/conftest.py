@@ -63,6 +63,7 @@ def tokenizer(tiny_model_dir):
 @pytest.fixture
 def serve_factory(tiny_model_dir):
     from tinyorca.config import OrcaConfig
+    from tinyorca.core.request import SamplingConfig
     from tinyorca.core.serve import OrcaServe
 
     def factory(
@@ -72,6 +73,7 @@ def serve_factory(tiny_model_dir):
         dtype: torch.dtype = torch.float32,
         **config_overrides,
     ) -> OrcaServe:
+        config_overrides.setdefault("sampling", SamplingConfig())
         config = OrcaConfig(
             model=str(tiny_model_dir),
             n_slots=estimated_n_slots,

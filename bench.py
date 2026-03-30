@@ -189,7 +189,7 @@ def run_case(
         OrcaConfig(
             model=args.model,
             max_batch_size=args.max_batch_size,
-            max_new_tokens=output_tokens,
+            sampling=SamplingConfig(max_new_tokens=output_tokens),
         ),
         device=device,
         dtype=dtype,

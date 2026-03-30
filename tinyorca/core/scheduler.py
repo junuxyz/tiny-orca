@@ -46,7 +46,7 @@ class OrcaScheduler:
         self.max_batch_size = max_batch_size
         n_slots = engine.config.n_slots
         if n_slots is None:
-            max_new_tokens = engine.config.max_new_tokens
+            max_new_tokens = engine.config.sampling.max_new_tokens
             n_slots = engine.estimate_n_slots(max_batch_size, max_new_tokens)
         self.n_slots = n_slots
         if self.n_slots < 1:

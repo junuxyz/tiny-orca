@@ -6,9 +6,7 @@ import torch
 from torch import nn
 from transformers.cache_utils import DynamicCache
 from transformers.masking_utils import create_causal_mask
-from transformers.models.qwen3.modeling_qwen3 import (
-    Qwen3ForCausalLM,
-)
+from transformers.models.qwen3.modeling_qwen3 import Qwen3ForCausalLM
 
 
 @dataclass(slots=True)
@@ -49,6 +47,7 @@ class Qwen3SelectiveModel(nn.Module):
         ):
             req_id = span.request_id
             req_hidden = hidden_states[span.start : span.end].unsqueeze(0)
+            # apply RoPE
             req_position_ids = req_position_ids.unsqueeze(0)
             position_embeddings.append(
                 self.model.model.rotary_emb(
@@ -67,10 +66,13 @@ class Qwen3SelectiveModel(nn.Module):
                 )
             )
 
+        # for each Transformer Layer
         for layer in self.layers:
             residual = hidden_states
+            # RMSNorm 1
             hidden_states = layer.input_layernorm(hidden_states)
 
+            # GQA (Grouped-Query Attention)
             # Selective batching keeps flat token-wise ops batched, but runs
             # attention request by request so each request can use its own KV.
             attn_output = torch.empty_like(hidden_states)
@@ -92,9 +94,14 @@ class Qwen3SelectiveModel(nn.Module):
                 )
                 attn_output[span.start : span.end] = attn_out.squeeze(0)
 
+            # residual connection
             hidden_states = residual + attn_output
             residual = hidden_states
+            # RMSNorm 2
             hidden_states = layer.post_attention_layernorm(hidden_states)
+            # MLP
             hidden_states = layer.mlp(hidden_states)
+            # residual connection
             hidden_states = residual + hidden_states
+        # final RMSNorm
         return self.model.model.norm(hidden_states)

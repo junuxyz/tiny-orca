@@ -36,7 +36,7 @@ def test_select_preserves_iteration_level_fcfs(engine_factory) -> None:
 
 
 def test_schedule_admits_later_request_after_slots_free_up(engine_factory) -> None:
-    engine = engine_factory(n_slots=7, max_new_tokens=2)
+    engine = engine_factory(n_slots=7)
     request_pool = RequestPool()
 
     for request in (
