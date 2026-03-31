@@ -4,7 +4,7 @@
   <img src="assets/tinyorca-logo.png" alt="tinyorca logo" width="280">
 </p>
 
-`tinyorca` is a minimal implementation of an [ORCA](https://www.usenix.org/system/files/osdi22-yu.pdf)-style LLM serving engine.
+**tinyorca** is a minimal implementation of an [ORCA](https://www.usenix.org/system/files/osdi22-yu.pdf)-style LLM serving engine.
 
 It focuses on iteration-level scheduling and selective batching for mixed prefill and decode workloads.
 
@@ -31,7 +31,7 @@ Even if one request finishes early, that vacant spot is not turned into useful w
   <img src="assets/tinyorca_demo.gif" alt="tinyorca demo" width="780">
 </p>
 
-In `tinyorca`, scheduling happens at iteration granularity instead of request granularity.
+In tinyorca, scheduling happens at iteration granularity instead of request granularity.
 
 When a short request(e.g. `"Hi"`) finishes, its slot can be reused on the next iteration, so waiting requests can join earlier without waiting for the longest request in the current batch to finish. This helps each step to keep the max batch size, leading to better throughput.
 
