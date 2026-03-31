@@ -22,7 +22,7 @@ WORKLOAD = ("128x128", 128, 128)
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Benchmark tinyORCA on one fixed 128x128 workload."
+        description="Benchmark tinyorca on one fixed 128x128 workload."
     )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--device", default=None)

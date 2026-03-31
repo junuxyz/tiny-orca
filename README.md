@@ -1,14 +1,14 @@
-# tinyORCA
+# tinyorca
 
 <p align="center">
-  <img src="assets/tinyorca-logo.png" alt="tinyORCA logo" width="280">
+  <img src="assets/tinyorca-logo.png" alt="tinyorca logo" width="280">
 </p>
 
-`tinyORCA` is a minimal implementation of an [ORCA](https://www.usenix.org/system/files/osdi22-yu.pdf)-style LLM serving engine.
+`tinyorca` is a minimal implementation of an [ORCA](https://www.usenix.org/system/files/osdi22-yu.pdf)-style LLM serving engine.
 
 It focuses on iteration-level scheduling and selective batching for mixed prefill and decode workloads.
 
-## Demo: Static Batch vs. Iteration-Level Turnover
+## Demo: Static Batch vs. Iteration-Level Scheduling
 
 Both demos below use the same setup:
 
@@ -19,20 +19,24 @@ Both demos below use the same setup:
 ### Baseline Engine
 
 <p align="center">
-  <img src="assets/baseline_engine.gif" alt="baseline engine demo" width="780">
+  <img src="assets/baseline_engine_demo.gif" alt="baseline engine demo" width="780">
 </p>
 
 In the baseline, the first admitted batch is effectively pinned until its slowest request completes.
 Even if one request finishes early, that vacant spot is not turned into useful work right away, so later requests keep waiting.
 
-### tinyORCA
+### tinyorca
 
 <p align="center">
-  <img src="assets/tinyorca_demo.gif" alt="tinyORCA demo" width="780">
+  <img src="assets/tinyorca_demo.gif" alt="tinyorca demo" width="780">
 </p>
 
+In `tinyorca`, scheduling happens at iteration granularity instead of request granularity.
+
+When a short request(e.g. `"Hi"`) finishes, its slot can be reused on the next iteration, so waiting requests can join earlier without waiting for the longest request in the current batch to finish. This helps each step to keep the max batch size, leading to better throughput.
+
 ## Deep dive
-For a deeper walkthrough of the paper and this implementation, see: **[Understanding ORCA with tinyORCA](https://github.com/junuxyz/mlsys-notes/blob/main/notes/tinyorca.md)**
+For a deeper walkthrough of the paper and this implementation, see: **[Understanding ORCA with tinyorca](https://github.com/junuxyz/mlsys-notes/blob/main/notes/tinyorca.md)**
 
 
 ## Run

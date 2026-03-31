@@ -7,7 +7,7 @@ from tinyorca.core.request import SamplingConfig
 
 @dataclass(slots=True)
 class OrcaConfig:
-    """Shared runtime configuration for tinyORCA submodules."""
+    """Shared runtime configuration for tinyorca submodules."""
 
     model: str | None = None
     max_batch_size: int = 4
